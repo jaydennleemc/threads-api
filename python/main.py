@@ -64,7 +64,7 @@ def is_new_post(thread):
         return False
     else:
         print("This Thread is not saved")
-        with open('last_thread.json', 'w+', encoding='UTF-8') as f:
+        with open(f'{Path.cwd()}/python/last_thread.json', 'w+', encoding='UTF-8') as f:
             f.write(json.dumps(thread, indent=4, ensure_ascii=False))
         return True
 
