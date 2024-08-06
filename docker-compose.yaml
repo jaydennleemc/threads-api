@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  thread_monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: thread_monitor
+    container_name: thread_monitor
+    environment:
+      - DEBUG=true
+      - WEBHOOK_URL="https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXX"

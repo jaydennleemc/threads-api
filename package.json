@@ -1,17 +1,20 @@
 {
-  "version": "1.0.103",
-  "name": "threads-api",
-  "devDependencies": {
-    "bun-types": "latest"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "hono": "^4.5.3"
-  },
-  "scripts": {
-    "dev": "bun run --watch src/api/index.ts",
-    "start:api": "bun run src/api/index.ts",
-    "watch:api": "bun run --watch src/api/index.ts"
-  },
-  "module": "src/lib/index.js"
+    "version": "1.0.103",
+    "name": "threads-api",
+    "devDependencies": {
+        "bun-types": "latest"
+    },
+    "dependencies": {
+        "concurrently": "^8.2.2",
+        "dotenv": "^16.4.5",
+        "hono": "^4.5.3"
+    },
+    "scripts": {
+        "dev": "bun run --watch src/api/index.ts",
+        "start": "concurrently -n api,lib -c green,blue \"npm run start:api\" \"npm run python\"",
+        "start:api": "bun run src/api/index.ts",
+        "watch:api": "bun run --watch src/api/index.ts",
+        "python": "python3 python/main.py"
+    },
+    "module": "src/lib/index.js"
 }
