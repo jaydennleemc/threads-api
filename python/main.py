@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import json
 import requests
 import schedule
@@ -9,7 +10,7 @@ load_dotenv()
 
 def read_local_json():
     try:
-        with open('last_thread.json', 'r', encoding='UTF-8') as f:
+        with open(f'{Path.cwd()}/python/last_thread.json', 'r', encoding='UTF-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return None
