@@ -1,11 +1,24 @@
 import os
 from pathlib import Path
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import json
 import requests
 import schedule
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        TimedRotatingFileHandler("app.log", when="midnight", interval=1, backupCount=7),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger()
 
 
 def read_local_json():
@@ -17,40 +30,57 @@ def read_local_json():
 
 
 def get_thread_caption(thread):
-    caption = thread['thread_items'][0]["post"]["caption"]["text"]
-    print(f"Caption: {caption}")
-    return caption
+    if thread and 'thread_items' in thread and thread['thread_items']:
+        caption = thread['thread_items'][0]["post"]["caption"]["text"]
+        logger.info(f"Caption: {caption}")
+        return caption
+    else:
+        logger.info("No caption found")
+        return None
 
 
 def get_thread_carousel_media(thread):
-    has_carousel_media = thread['thread_items'][0]["post"]["carousel_media"]
-    if has_carousel_media:
-        print("This Thread Has carousel media")
-        carousel_media_urls = []
-        for carousel_media in has_carousel_media:
-            carousel_media_urls.append(carousel_media['image_versions2']['candidates'][0]['url'])
-        print(f"Carousel Media: {carousel_media_urls}")
-        return carousel_media_urls
+    if thread and 'thread_items' in thread and thread['thread_items']:
+        has_carousel_media = thread['thread_items'][0]["post"].get("carousel_media")
+        if has_carousel_media:
+            logger.info("This Thread Has carousel media")
+            carousel_media_urls = []
+            for carousel_media in has_carousel_media:
+                carousel_media_urls.append(carousel_media['image_versions2']['candidates'][0]['url'])
+            logger.info(f"Carousel Media: {carousel_media_urls}")
+            return carousel_media_urls
+        else:
+            logger.info("This Thread Doesn't have carousel media")
+            return None
     else:
-        print("This Thread Doesn't have carousel media")
+        logger.info("No thread items found")
         return None
 
 
 def get_quoted_posts(thread):
-    is_quoted_post = thread['thread_items'][0]["post"]["text_post_app_info"]['share_info']['quoted_post']
-    if is_quoted_post:
-        print("This Thread is a Quoted Post")
-        quoted_post = thread['thread_items'][0]["post"]["text_post_app_info"]['share_info']['quoted_post']
-        print(f"Quoted Post: {quoted_post}")
-
+    if thread and 'thread_items' in thread and thread['thread_items']:
+        is_quoted_post = thread['thread_items'][0]["post"]["text_post_app_info"]['share_info'].get('quoted_post')
+        if is_quoted_post:
+            logger.info("This Thread is a Quoted Post")
+            quoted_post = thread['thread_items'][0]["post"]["text_post_app_info"]['share_info']['quoted_post']
+            logger.info(f"Quoted Post: {quoted_post}")
+        else:
+            logger.info("This Thread is not a Quoted Post")
+            return None
     else:
-        print("This Thread is not a Quoted Post")
+        logger.info("No thread items found")
         return None
 
 
 def get_thread_post_time(thread):
-    taken_at = thread['thread_items'][0]["post"]["taken_at"]
-    print(f"Post Time: {taken_at}")
+    if thread and 'thread_items' in thread and thread['thread_items']:
+        taken_at = thread['thread_items'][0]["post"].get("taken_at")
+        if taken_at:
+            logger.info(f"Post Time: {taken_at}")
+        else:
+            logger.info("No post time found")
+    else:
+        logger.info("No thread items found")
 
 
 def is_new_post(thread):
@@ -64,10 +94,10 @@ def is_new_post(thread):
         f.write(json.dumps(thread, indent=4, ensure_ascii=False))
     # Check if the thread is already saved
     if local_id == thread_id:
-        print("This Thread is already saved")
+        logger.info("This Thread is already saved")
         return False
     else:
-        print("This Thread is not saved")
+        logger.info("This Thread is not saved")
         return True
 
 
@@ -84,32 +114,23 @@ def check_last_thread_post(user_id):
         last_thread_item = threads[1]
 
         if is_new_post(last_thread_item):
-            print("This is a new post")
+            logger.info("This is a new post")
             user = last_thread_item['thread_items'][0]["post"]["user"]
-            print(f"User: {user['username']}")
+            logger.info(f"User: {user['username']}")
             caption = get_thread_caption(last_thread_item)
-            push_message = f'''
-            @everyone
-            **New Post Alert**
-            User:   {user['username']}
-            Caption:    {caption}
-            
-            '''
+            push_message = f'New Post from {user["username"]}\ncaption:{caption}\n'
             has_carousel_media = get_thread_carousel_media(last_thread_item)
             if has_carousel_media:
                 for media in has_carousel_media:
-                    push_message += f'''
-                    {media}
-                    
-                    '''
+                    push_message += f'\n{media}'
             push_discord_webhook(push_message)
             # is_quoted_post = get_quoted_posts(last_thread_item)
             return
         else:
-            print("This is not a new post")
+            logger.info("This is not a new post")
             return
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f'Exception error, message: {str(e)}')
         push_discord_webhook(f"Exception error, message: {str(e)}")
 
 
@@ -118,14 +139,15 @@ def push_discord_webhook(content):
     data = {
         "content": content
     }
+    logger.info(f"Pushing Webhook To Discord: {data}")
     header = {
         "Content-Type": "application/json"
     }
     response = requests.post(url, data=json.dumps(data), headers=header)
     if response.status_code == 204:
-        print("Push Webhook To Discord successfully")
+        logger.info("Push Webhook To Discord successfully")
     else:
-        print("Push Webhook To Discord failed")
+        logger.info("Push Webhook To Discord failed")
 
 
 def job():
@@ -137,7 +159,7 @@ def job():
 
 
 if __name__ == '__main__':
-    print("Thread Monitor Started....")
+    logger.info("Thread Monitor Started....")
     schedule.every(1).minutes.do(job)
     while True:
         schedule.run_pending()
