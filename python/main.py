@@ -59,21 +59,28 @@ def is_new_post(thread):
         return True
     local_id = local_post['id']
     thread_id = thread['id']
+    # Save the last thread to local json
+    with open(f'{Path.cwd()}/python/last_thread.json', 'w+', encoding='UTF-8') as f:
+        f.write(json.dumps(thread, indent=4, ensure_ascii=False))
+    # Check if the thread is already saved
     if local_id == thread_id:
         print("This Thread is already saved")
         return False
     else:
         print("This Thread is not saved")
-        with open(f'{Path.cwd()}/python/last_thread.json', 'w+', encoding='UTF-8') as f:
-            f.write(json.dumps(thread, indent=4, ensure_ascii=False))
         return True
 
 
 def check_last_thread_post(user_id):
     try:
         url = f'http://localhost:3000/api/users/{user_id}/threads'
-        data = requests.get(url).json()
-        threads = data["data"]["mediaData"]["threads"]
+        response = requests.get(url)
+        if response.status_code != 200:
+            push_discord_webhook(f"Thread API error, code = {response.status_code} & message = {response.text}")
+            return
+
+        response = response.json()
+        threads = response["data"]["mediaData"]["threads"]
         last_thread_item = threads[1]
 
         if is_new_post(last_thread_item):
@@ -103,10 +110,7 @@ def check_last_thread_post(user_id):
             return
     except Exception as e:
         print(f"Error: {e}")
-        push_discord_webhook(json.dumps({
-            "message": "Thread Monitor Error",
-            "error": str(e)
-        }))
+        push_discord_webhook(f"Exception error, message: {str(e)}")
 
 
 def push_discord_webhook(content):
@@ -134,6 +138,7 @@ def job():
 
 if __name__ == '__main__':
     print("Thread Monitor Started....")
-    schedule.every(1).minutes.do(job)
-    while True:
-        schedule.run_pending()
+    job()
+    # schedule.every(1).minutes.do(job)
+    # while True:
+    #     schedule.run_pending()
