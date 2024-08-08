@@ -39,7 +39,7 @@ def get_thread_caption(thread):
         return None
 
 
-def get_thread_carousel_media(thread):
+def get_thread_media(thread):
     if thread and 'thread_items' in thread and thread['thread_items']:
         has_carousel_media = thread['thread_items'][0]["post"].get("carousel_media")
         if has_carousel_media:
@@ -51,7 +51,14 @@ def get_thread_carousel_media(thread):
             return carousel_media_urls
         else:
             logger.info("This Thread Doesn't have carousel media")
-            return None
+            if thread['thread_items'][0]["post"].get("image_versions2"):
+                if len(thread['thread_items'][0]["post"]["image_versions2"]["candidates"]) > 0:
+                    image_url = thread['thread_items'][0]["post"]["image_versions2"]["candidates"][0]["url"]
+                    logger.info(f"Image URL: {image_url}")
+                    return [image_url]
+                return None
+            else:
+                return None
     else:
         logger.info("No thread items found")
         return None
@@ -119,10 +126,10 @@ def check_last_thread_post(user_id):
             logger.info(f"User: {user['username']}")
             caption = get_thread_caption(last_thread_item)
             push_message = f'New Post from {user["username"]}\ncaption:{caption}\n'
-            has_carousel_media = get_thread_carousel_media(last_thread_item)
-            if has_carousel_media:
-                for media in has_carousel_media:
-                    push_message += f'\n{media}'
+            has_media = get_thread_media(last_thread_item)
+            if has_media:
+                for media in has_media:
+                    push_message += f'\n\n{media}'
             push_discord_webhook(push_message)
             # is_quoted_post = get_quoted_posts(last_thread_item)
             return
@@ -160,6 +167,7 @@ def job():
 
 if __name__ == '__main__':
     logger.info("Thread Monitor Started....")
-    schedule.every(1).minutes.do(job)
-    while True:
-        schedule.run_pending()
+    job()
+    # schedule.every(1).minutes.do(job)
+    # while True:
+    #     schedule.run_pending()

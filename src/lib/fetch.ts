@@ -13,23 +13,6 @@ const fetchBase = ({documentId, variables}) => {
             documentId,
             variables,
         });
-    fetch(GRAPHQL_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "Threads API midu client",
-            "x-ig-app-id": THREADS_APP_ID,
-            "x-fb-lsd": "jdFoLBsUcm9h-j90PeanuC",
-        },
-        body: `lsd=jdFoLBsUcm9h-j90PeanuC&jazoest=21926&variables=${JSON.stringify(
-            variables
-        )}&doc_id=${documentId}`,
-    }).then((response) => response.json()).then((data) => {
-        console.log('fwfjwk')
-        console.log(data);
-        console.log('fsfjsdklfjksl')
-    });
-
 
     return fetch(GRAPHQL_ENDPOINT, {
         method: "POST",
