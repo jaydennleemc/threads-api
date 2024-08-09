@@ -116,9 +116,15 @@ def check_last_thread_post(user_id):
             push_discord_webhook(f"Thread API error, code = {response.status_code} & message = {response.text}")
             return
 
+        logger.info(f"Thread API response: {response.text}")
         response = response.json()
+        if (response["data"]["mediaData"]["threads"] is None) or (len(response["data"]["mediaData"]["threads"]) == 0):
+            logger.info("No Threads Found")
+            return
+
         threads = response["data"]["mediaData"]["threads"]
         last_thread_item = threads[1]
+        logger.info(f"Last Thread: {last_thread_item}")
 
         if is_new_post(last_thread_item):
             logger.info("This is a new post")
